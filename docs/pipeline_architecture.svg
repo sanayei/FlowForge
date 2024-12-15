@@ -1,0 +1,64 @@
+<svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="800" height="400" fill="#f8f9fa"/>
+    
+    <!-- Title -->
+    <text x="400" y="40" text-anchor="middle" font-size="20" font-weight="bold" fill="#333">Distributed OCR Pipeline Architecture</text>
+    
+    <!-- Input Section -->
+    <rect x="50" y="100" width="120" height="60" rx="5" fill="#b3e0ff" stroke="#0066cc"/>
+    <text x="110" y="135" text-anchor="middle" font-size="14">Input Documents</text>
+    <text x="110" y="155" text-anchor="middle" font-size="12">(S3 Bucket)</text>
+    
+    <!-- SageMaker Orchestration -->
+    <rect x="250" y="80" width="300" height="100" rx="5" fill="#fff" stroke="#666"/>
+    <text x="400" y="110" text-anchor="middle" font-size="16" font-weight="bold">SageMaker Orchestration</text>
+    <rect x="270" y="120" width="80" height="40" rx="3" fill="#ffcce6"/>
+    <rect x="360" y="120" width="80" height="40" rx="3" fill="#ffcce6"/>
+    <rect x="450" y="120" width="80" height="40" rx="3" fill="#ffcce6"/>
+    <text x="310" y="145" text-anchor="middle" font-size="12">Job 1</text>
+    <text x="400" y="145" text-anchor="middle" font-size="12">Job 2</text>
+    <text x="490" y="145" text-anchor="middle" font-size="12">Job N</text>
+    
+    <!-- Processing Section -->
+    <rect x="250" y="220" width="300" height="100" rx="5" fill="#fff" stroke="#666"/>
+    <text x="400" y="250" text-anchor="middle" font-size="16" font-weight="bold">Document Processing</text>
+    <text x="310" y="280" text-anchor="middle" font-size="12">OCR</text>
+    <text x="400" y="280" text-anchor="middle" font-size="12">Text Extraction</text>
+    <text x="490" y="280" text-anchor="middle" font-size="12">Image Processing</text>
+    <rect x="270" y="260" width="80" height="40" rx="3" fill="#d9f2d9"/>
+    <rect x="360" y="260" width="80" height="40" rx="3" fill="#d9f2d9"/>
+    <rect x="450" y="260" width="80" height="40" rx="3" fill="#d9f2d9"/>
+    
+    <!-- Output Section -->
+    <rect x="630" y="100" width="120" height="60" rx="5" fill="#b3e0ff" stroke="#0066cc"/>
+    <text x="690" y="135" text-anchor="middle" font-size="14">Results Storage</text>
+    <text x="690" y="155" text-anchor="middle" font-size="12">(S3 Bucket)</text>
+    
+    <!-- Monitoring Section -->
+    <rect x="630" y="220" width="120" height="100" rx="5" fill="#ffe6cc" stroke="#ff8c1a"/>
+    <text x="690" y="250" text-anchor="middle" font-size="14">Monitoring</text>
+    <text x="690" y="270" text-anchor="middle" font-size="12">CloudWatch</text>
+    <text x="690" y="290" text-anchor="middle" font-size="12">Metrics</text>
+    <text x="690" y="310" text-anchor="middle" font-size="12">Logging</text>
+    
+    <!-- Arrows -->
+    <!-- Input to Orchestration -->
+    <path d="M170 130 H240" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+    
+    <!-- Orchestration to Processing -->
+    <path d="M400 180 L400 210" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+    
+    <!-- Processing to Output -->
+    <path d="M550 130 H620" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+    
+    <!-- Processing to Monitoring -->
+    <path d="M550 270 H620" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+    
+    <!-- Arrowhead definition -->
+    <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#666"/>
+        </marker>
+    </defs>
+</svg>
