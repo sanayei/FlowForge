@@ -1,8 +1,8 @@
-# Distributed OCR Pipeline with AWS SageMaker
+# Distributed Processing Pipeline with AWS SageMaker
 
-A scalable, distributed OCR (Optical Character Recognition) pipeline built with AWS SageMaker for processing large volumes of documents efficiently. This project demonstrates how to leverage SageMaker's processing jobs to distribute workload across multiple instances, process documents using Tesseract OCR, and manage the entire pipeline efficiently.
+A scalable, distributed processing pipeline built with AWS SageMaker. This modular framework supports various document processing tasks (OCR, image processing, text analysis, etc.) and can be easily extended with custom processors.
 
-![Pipeline Architecture](docs/pipeline_architecture.png)
+![Pipeline Architecture](docs/pipeline_architecture.svg)
 
 ## Table of Contents
 - [Features](#features)
@@ -11,61 +11,80 @@ A scalable, distributed OCR (Optical Character Recognition) pipeline built with 
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Usage](#usage)
-  - [Basic Usage](#basic-usage)
-  - [Local Development](#local-development)
-  - [Production Deployment](#production-deployment)
-- [Development](#development)
-- [Testing](#testing)
+- [Adding New Processors](#adding-new-processors)
+- [Local Development](#local-development)
 - [Infrastructure](#infrastructure)
+- [Testing](#testing)
 - [Monitoring](#monitoring)
-- [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
 
 ## Features
 
+### Core Features
+- **Modular Architecture**
+  - Pluggable processor framework
+  - Easy extension with custom processors
+  - Common interface for all processors
+  - Built-in validation and error handling
+
+### Available Processors
+- **OCR Processing**
+  - PDF to text conversion
+  - Image text extraction
+  - Multi-page document support
+  
+- **Image Processing**
+  - Format conversion
+  - Image optimization
+  - Batch processing support
+
+- **Text Analysis**
+  - Text extraction
+  - Content analysis
+  - Metadata generation
+
+### Infrastructure Features
 - **Distributed Processing**
-  - Automatic workload distribution across multiple SageMaker instances
-  - Configurable parallel processing jobs
-  - Efficient resource utilization
-
-- **Flexible Document Processing**
-  - PDF document processing
-  - Image to text conversion
-  - Support for multiple output formats
-  - Configurable OCR settings
-
+  - Automatic workload distribution
+  - Parallel processing
+  - Resource optimization
+  
 - **AWS Integration**
-  - Seamless S3 integration
   - SageMaker Processing Jobs
+  - S3 storage integration
   - CloudWatch monitoring
-  - IAM role management
-
-- **Developer Features**
-  - Local development mode
-  - Comprehensive testing suite
-  - Infrastructure as Code
-  - Detailed logging and monitoring
+  - ECR container registry
 
 ## Project Structure
 
 ```
-distributed-ocr-pipeline/
+distributed-processing-pipeline/
 ├── src/
-│   ├── config/           # Configuration management
-│   ├── core/            # Core processing logic
-│   ├── orchestration/   # Pipeline orchestration
-│   └── utils/           # Utility functions
-├── tests/
+│   ├── config/               # Configuration management
+│   │   ├── settings.py
+│   │   └── local_settings.py
+│   │
+│   ├── processors/          # Processing modules
+│   │   ├── base.py         # Base processor class
+│   │   ├── ocr_processor.py
+│   │   └── image_processor.py
+│   │
+│   ├── orchestration/      # Pipeline orchestration
+│   │   └── pipeline.py
+│   │
+│   └── utils/             # Utility functions
+│
+├── tests/                 # Test suite
 │   ├── unit/
-│   ├── integration/
-│   └── data/            # Test data
-├── infrastructure/
+│   └── integration/
+│
+├── infrastructure/        # Infrastructure code
 │   ├── docker/
 │   └── terraform/
-├── scripts/
-├── docs/
-└── examples/
+│
+├── docs/                 # Documentation
+└── examples/            # Usage examples
 ```
 
 ## Prerequisites
@@ -109,8 +128,8 @@ distributed-ocr-pipeline/
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/distributed-ocr-pipeline.git
-cd distributed-ocr-pipeline
+git clone https://github.com/yourusername/distributed-processing-pipeline.git
+cd distributed-processing-pipeline
 ```
 
 2. Create and activate virtual environment:
@@ -134,82 +153,153 @@ aws configure
 ## Configuration
 
 ### AWS Configuration
-
 ```python
-# src/config/settings.py
 @dataclass
 class AWSConfig:
     region: str = "us-west-2"
-    bucket: str = "my-ocr-bucket"
+    bucket: str = "my-processing-bucket"
     role_arn: str = "arn:aws:iam::ACCOUNT:role/SageMakerExecutionRole"
     instance_type: str = "ml.t3.xlarge"
     max_parallel_jobs: int = 10
     files_per_job: int = 10
 ```
 
-### OCR Configuration
-
+### Processor Configuration
 ```python
 @dataclass
-class OCRConfig:
+class ProcessorConfig:
+    type: str = "ocr"  # or "image", "text", etc.
     output_format: str = "parquet"
-    partition_key: str = "document_id"
-    tesseract_config: Optional[dict] = None
-```
-
-### Environment Variables
-```bash
-export AWS_PROFILE=default
-export AWS_REGION=us-west-2
-export SAGEMAKER_ROLE_ARN=arn:aws:iam::ACCOUNT:role/SageMakerExecutionRole
-export OCR_BUCKET_NAME=my-ocr-bucket
+    batch_size: int = 10
+    custom_settings: Dict[str, Any] = field(default_factory=dict)
 ```
 
 ## Usage
 
 ### Basic Usage
 
-1. Python API:
+1. Initialize Pipeline:
 ```python
-from distributed_ocr_pipeline import OCRPipeline
-from distributed_ocr_pipeline.config import AWSConfig, OCRConfig
+from distributed_pipeline import ProcessingPipeline
+from distributed_pipeline.config import AWSConfig, ProcessorConfig
+
+# Create configurations
+aws_config = AWSConfig(
+    region="us-west-2",
+    bucket="my-bucket",
+    role_arn="my-role-arn"
+)
+processor_config = ProcessorConfig()
 
 # Initialize pipeline
-pipeline = OCRPipeline(
-    aws_config=AWSConfig(),
-    ocr_config=OCRConfig()
+pipeline = ProcessingPipeline(aws_config, processor_config)
+
+# Register processors
+pipeline.register_processor("ocr", OCRProcessor)
+pipeline.register_processor("image", ImageProcessor)
+```
+
+2. Run Processing:
+```python
+# Run OCR processing
+pipeline.run_processor(
+    "ocr",
+    input_prefix="s3://bucket/documents/",
+    output_type="text"
 )
 
-# Process documents
-pipeline.run(input_prefix="documents/")
+# Run image processing
+pipeline.run_processor(
+    "image",
+    input_prefix="s3://bucket/images/",
+    output_format="png"
+)
 ```
 
-2. Command Line:
-```bash
-python -m distributed_ocr_pipeline.main \
-    --input-prefix documents/ \
-    --output-type both \
-    --max-parallel-jobs 5
+## Adding New Processors
+
+### Step 1: Create Processor Class
+
+```python
+# src/processors/custom_processor.py
+from typing import Any, Dict
+from .base import BaseProcessor
+
+class CustomProcessor(BaseProcessor):
+    def __init__(self, config: Dict[str, Any] = None):
+        super().__init__(config)
+        self.specific_setting = config.get('specific_setting', 'default')
+    
+    def validate_input(self, input_data: Any) -> bool:
+        # Add validation logic
+        return True
+    
+    def process(self, input_data: Any) -> Any:
+        # Add processing logic
+        return processed_result
 ```
 
-### Local Development
+### Step 2: Add Configuration
 
-1. Start local SageMaker environment:
+```python
+@dataclass
+class CustomProcessorConfig:
+    specific_setting: str = "default"
+    processing_mode: str = "standard"
+    batch_size: int = 10
+```
+
+### Step 3: Create Tests
+
+```python
+# tests/processors/test_custom_processor.py
+def test_custom_processor():
+    processor = CustomProcessor({"specific_setting": "test"})
+    result = processor.process(test_data)
+    assert result is not None
+```
+
+### Step 4: Register and Use
+
+```python
+# Register processor
+pipeline.register_processor("custom", CustomProcessor)
+
+# Use processor
+pipeline.run_processor(
+    "custom",
+    input_prefix="s3://bucket/data/",
+    specific_setting="value"
+)
+```
+
+## Local Development
+
+### Setup Local Environment
+
+1. Configure local settings:
+```python
+from config.local_settings import LocalAWSConfig
+
+local_config = LocalAWSConfig(
+    endpoint_url="http://localhost:8080",
+    use_local_mode=True
+)
+```
+
+2. Start local SageMaker:
 ```bash
 make local-setup
 ```
 
-2. Run local tests:
+3. Run local tests:
 ```bash
 make local-test
 ```
 
-3. Monitor local processing:
-```bash
-make local-logs
-```
+## Infrastructure
 
-### Production Deployment
+### Build and Deploy
 
 1. Build Docker image:
 ```bash
@@ -218,39 +308,9 @@ make build-image
 
 2. Deploy infrastructure:
 ```bash
-make deploy
-```
-
-3. Run pipeline:
-```bash
-make run-pipeline INPUT_PREFIX=s3://bucket/documents/
-```
-
-## Development
-
-### Setting Up Development Environment
-
-1. Install development dependencies:
-```bash
-pip install -e ".[dev]"
-```
-
-2. Install pre-commit hooks:
-```bash
-pre-commit install
-```
-
-### Code Style
-The project uses:
-- Black for code formatting
-- isort for import sorting
-- mypy for type checking
-- pylint for linting
-
-Run style checks:
-```bash
-make format  # Format code
-make lint    # Run linters
+cd infrastructure/terraform
+terraform init
+terraform apply
 ```
 
 ## Testing
@@ -258,126 +318,50 @@ make lint    # Run linters
 ### Running Tests
 
 ```bash
-# All tests
+# Run all tests
 make test
 
-# Specific test
-pytest tests/unit/test_processor.py -v
+# Run specific tests
+pytest tests/unit/test_processor.py
 
-# With coverage
+# Run with coverage
 pytest --cov=src tests/
 ```
 
 ### Writing Tests
 
 ```python
-def test_document_processor():
-    processor = DocumentProcessor(output_type="both")
-    result = processor.process_document(
-        "test.pdf",
-        document_id="test123"
-    )
-    assert "text" in result
-    assert "image_paths" in result
-```
-
-## Infrastructure
-
-### Local Docker Build
-
-```bash
-# Build local image
-docker build -t ocr-processor:local -f infrastructure/docker/Dockerfile.local .
-
-# Run local container
-docker run -it --rm \
-    -v ~/.aws:/root/.aws \
-    -v $(pwd)/data:/opt/ml/data \
-    ocr-processor:local
-```
-
-### AWS Deployment
-
-1. Infrastructure setup:
-```bash
-cd infrastructure/terraform
-terraform init
-terraform plan
-terraform apply
-```
-
-2. Verify deployment:
-```bash
-aws sagemaker list-processing-jobs
+def test_processor():
+    processor = CustomProcessor()
+    
+    # Test validation
+    assert processor.validate_input(valid_data)
+    
+    # Test processing
+    result = processor.process(test_data)
+    assert result.status == "success"
 ```
 
 ## Monitoring
 
-### CloudWatch Logs
+### CloudWatch Integration
 
-Access logs:
+1. Access logs:
 ```bash
 aws logs get-log-events \
     --log-group-name /aws/sagemaker/ProcessingJobs \
     --log-stream-name your-job-name
 ```
 
-### Metrics
-
-Key metrics available in CloudWatch:
-- DocumentsProcessed
-- ProcessingTime
-- ErrorRate
-- InstanceUtilization
-
-### Alerts
-
-Configure CloudWatch alarms:
-```bash
-aws cloudwatch put-metric-alarm \
-    --alarm-name OCRPipelineError \
-    --metric-name ErrorRate \
-    --threshold 5
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. SageMaker Permission Errors
-   - Check IAM role permissions
-   - Verify S3 bucket access
-   - Review CloudWatch logs
-
-2. Processing Errors
-   - Validate input documents
-   - Check Tesseract configuration
-   - Monitor instance resources
-
-3. Infrastructure Issues
-   - Verify AWS credentials
-   - Check resource limits
-   - Review deployment logs
-
-### Debug Mode
-
-Enable debug logging:
-```python
-import logging
-logging.getLogger('distributed_ocr_pipeline').setLevel(logging.DEBUG)
-```
-
-### Support
-
-For support:
-1. Check documentation
-2. Review CloudWatch logs
-3. Open GitHub issue
-4. Contact maintainers
+2. Monitor metrics:
+- Processing time
+- Error rates
+- Resource usage
+- Job status
 
 ## Contributing
 
-1. Fork repository
+1. Fork the repository
 2. Create feature branch
 3. Commit changes
 4. Push to branch
@@ -385,10 +369,16 @@ For support:
 
 ### Development Guidelines
 
-1. Follow code style guides
-2. Add tests for new features
-3. Update documentation
-4. Write clear commit messages
+1. Follow code style:
+   - Use Black for formatting
+   - Add type hints
+   - Write docstrings
+   - Include tests
+
+2. Testing:
+   - Add unit tests
+   - Update integration tests
+   - Verify local execution
 
 ## License
 
@@ -400,8 +390,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 1. Install:
 ```bash
-git clone https://github.com/yourusername/distributed-ocr-pipeline.git
-cd distributed-ocr-pipeline
+git clone https://github.com/yourusername/distributed-processing-pipeline.git
+cd distributed-processing-pipeline
 make install
 ```
 
@@ -413,9 +403,9 @@ cp .env.example .env
 
 3. Run:
 ```python
-from distributed_ocr_pipeline import OCRPipeline
-pipeline = OCRPipeline()
-pipeline.run("documents/")
+from distributed_pipeline import ProcessingPipeline
+pipeline = ProcessingPipeline()
+pipeline.run_processor("ocr", "s3://bucket/documents/")
 ```
 
 For more examples, check the [examples](examples/) directory.

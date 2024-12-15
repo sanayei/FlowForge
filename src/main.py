@@ -1,25 +1,32 @@
-import logging
-from config.settings import AWSConfig, OCRConfig
-from orchestration.pipeline import OCRPipeline
-from utils.logging import setup_logging
+from orchestration.pipeline import ProcessingPipeline
+from processors.ocr_processor import OCRProcessor
+from processors.image_processor import ImageProcessor
 
 def main():
-    # Setup logging
-    setup_logging()
-    logger = logging.getLogger(__name__)
+    from config.settings import AWSConfig, ProcessorConfig
     
-    try:
-        # Initialize configurations
-        aws_config = AWSConfig()
-        ocr_config = OCRConfig()
-        
-        # Create and run pipeline
-        pipeline = OCRPipeline(aws_config, ocr_config)
-        pipeline.run(input_prefix="documents/")
-        
-    except Exception as e:
-        logger.error("Pipeline execution failed: %s", str(e))
-        raise
+    # Initialize configurations
+    aws_config = AWSConfig(
+        region="us-west-2",
+        bucket="my-bucket",
+        role_arn="my-role"
+    )
+    
+    processor_config = ProcessorConfig()
+    
+    # Create pipeline
+    pipeline = ProcessingPipeline(aws_config, processor_config)
+    
+    # Register processors
+    pipeline.register_processor("ocr", OCRProcessor)
+    pipeline.register_processor("image", ImageProcessor)
+    
+    # Run specific processor
+    pipeline.run_processor(
+        "ocr",
+        input_prefix="s3://my-bucket/documents/",
+        output_type="text"
+    )
 
 if __name__ == "__main__":
     main()
